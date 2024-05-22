@@ -1,33 +1,26 @@
 # Stage 1: Build React App
 FROM alpine:latest
 
-ARG USERNAME=rashesh
-
-WORKDIR /home/${USERNAME}/react-app
-
 RUN apk add --update nodejs npm nginx bash
 
-RUN adduser --gecos "$USERNAME" \
-    --disabled-password \
-    --shell /bin/sh \
-    --uid 1001 \
-    ${USERNAME}
+RUN addgroup -S && appgroup -S -G appgroup -s bin/sh rashesh
 
-COPY --chown=${USERNAME}:${USERNAME} . /home/${USERNAME}/app
+RUN -p /var/run/nginx &&\
+    touch var/run/nginx.pid && \
+    chown -R rashesh:appgroup var/run/nginx var/log/nginx var/lib/nginx etc/nginx var/run/nginx.pid
 
-COPY . /home/${USERNAME}/react-app
+COPY nginx.conf etc/nginx/nginx.conf
+
+WORKDIR /home/rashesh/react-app
+
+COPY --chown=rashesh:appgroup . .
 
 RUN npm install
-
-# Expose port 8050
 
 EXPOSE 8050
 
 # Start nginx as the non-root user
-USER ${USERNAME}
+USER rashesh
 
-COPY nginx.conf etc/nginx/conf.d/default
 
-# Start nginx
-# CMD ["nginx", "-g", "daemon off;"]
-CMD npm start
+CMD [ "sh" ,"-c",  "nginx && node index.js" ]
